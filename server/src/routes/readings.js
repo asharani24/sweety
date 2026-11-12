@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// List (optionally for one date)
+// List (optionally for one date), ordered by day then time slot
 router.get('/', async (req, res) => {
   try {
     const { date } = req.query;
@@ -44,7 +44,10 @@ router.get('/', async (req, res) => {
       where += ' AND reading_date = $2';
     }
     const { rows } = await db.query(
-      `SELECT ${COLUMNS} FROM readings WHERE ${where} ORDER BY reading_date DESC, id`,
+      `SELECT ${COLUMNS} FROM readings WHERE ${where}
+       ORDER BY reading_date DESC,
+       CASE slot WHEN 'morning' THEN 1 WHEN 'after_breakfast' THEN 2
+                 WHEN 'after_lunch' THEN 3 ELSE 4 END`,
       params
     );
     res.json(rows);

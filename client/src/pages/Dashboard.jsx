@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api, { getErrorMessage } from '../api';
 import { useAuth } from '../AuthContext';
 import ReadingForm from '../components/ReadingForm';
+import ReportCard from '../components/ReportCard';
 import { slotLabel, todayStr } from '../utils';
 
 export default function Dashboard() {
@@ -11,11 +12,24 @@ export default function Dashboard() {
   const [editing, setEditing] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState('');
+  const [reports, setReports] = useState({});
 
   useEffect(() => {
     api
       .get('/readings', { params: { date: selectedDate } })
       .then(({ data }) => setReadings(data))
+      .catch((err) => setError(getErrorMessage(err)));
+  }, [selectedDate, refreshKey]);
+
+  useEffect(() => {
+    Promise.all([
+      api.get('/reports/daily', { params: { date: selectedDate } }),
+      api.get('/reports/month-to-date', { params: { date: selectedDate } }),
+      api.get('/reports/monthly', { params: { date: selectedDate } }),
+    ])
+      .then(([daily, mtd, monthly]) =>
+        setReports({ daily: daily.data, mtd: mtd.data, monthly: monthly.data })
+      )
       .catch((err) => setError(getErrorMessage(err)));
   }, [selectedDate, refreshKey]);
 
@@ -89,6 +103,13 @@ export default function Dashboard() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <h2>Reports for the selected date</h2>
+      <div className="grid">
+        <ReportCard title="Daily" report={reports.daily} showReadings />
+        <ReportCard title="Month-to-date" report={reports.mtd} />
+        <ReportCard title="Previous month" report={reports.monthly} />
       </div>
     </div>
   );
